@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:pageview/post.dart';
+import 'package:http/http.dart' as http;
+import "dart:convert";
+import "dart:async";
 
 void main() => runApp(MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -15,8 +19,24 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   PageController? page;
-  void scroll() {
-    print('ssss');
+  double turn = 1;
+  Future<List<Post>> recuperaPost() async {
+    http.Response response = await http
+        .get(Uri.parse("https://api.jsonbin.io/v3/b/66e07b64acd3cb34a8815cf5"));
+
+    var dadosJson = json.decode(response.body);
+
+    List<Post> postagens = [];
+
+    for (var post in dadosJson['record']['post']) {
+      Post p = Post(post["id"], post["local"], post["nome"], post["img"],
+          post["estrela"]);
+
+      postagens.add(p);
+    }
+    postagens.shuffle();
+
+    return postagens;
   }
 
   @override
@@ -29,43 +49,57 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white10,
-      body: PageView(
-        scrollDirection: Axis.vertical,
-        controller: page,
-        children: [
-          Container(
-            child: makePage(
-                'https://images.pexels.com/photos/1576667/pexels-photo-1576667.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                "USA",
-                "Cidade lindas nos alpes da grecia",
-                "1"),
-          ),
-          Container(
-            child: makePage(
-                'https://images.pexels.com/photos/592077/pexels-photo-592077.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                "Grecia",
-                "Cidade lindas nos alpes da grecia, imagem da sedonia, com pinheiros e um por do sol de arrasar, a diaria custa em media 1500 USD",
-                "2"),
-          ),
-          Container(
-            child: makePage(
-                'https://images.pexels.com/photos/1606328/pexels-photo-1606328.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                "Japan",
-                "Cidade lindas nos alpes da grecia",
-                "3"),
-          ),
-        ],
+      body: FutureBuilder<List<Post>>(
+        future: recuperaPost(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (snapshot.hasError) {
+            return Center(child: Text("Erro ao Carregar Dados"));
+          } else if (snapshot.hasData) {
+            List<Post> posts = snapshot.data!;
+            return PageView.builder(
+              scrollDirection: Axis.vertical,
+              controller: page,
+              itemCount: 5,
+              itemBuilder: (context, index) {
+                Post post = posts[index];
+                return makePage(
+                  post.img,
+                  post.local,
+                  post.nome,
+                  index + 1,
+                  post.estrela,
+                );
+              },
+            );
+          }
+          ;
+          return Text("Deu certo ");
+        },
       ),
     );
   }
 
-  Widget makePage(String image1, String title, String descrition, page) {
+  Widget makePage(String img, String title, String descrition, page, int star) {
+    List<Widget> estrelaWidget = [];
+    for (int i = 0; i < star; i++) {
+      estrelaWidget.add(
+        Container(
+          margin: EdgeInsets.all(3),
+          child: Icon(
+            Icons.star,
+            color: Colors.yellow,
+          ),
+        ),
+      );
+    }
     return Container(
       decoration: BoxDecoration(
           color: Colors.white,
-          image:
-              DecorationImage(image: NetworkImage(image1), fit: BoxFit.cover),
+          image: DecorationImage(image: NetworkImage(img), fit: BoxFit.cover),
           gradient: LinearGradient(begin: Alignment.bottomRight, stops: [
             0.3,
             0.9
@@ -93,7 +127,7 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   Text(
-                    '/4',
+                    '/5',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -119,29 +153,29 @@ class _HomeState extends State<Home> {
               height: 20,
             ),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  margin: EdgeInsets.only(right: 3),
-                  child: Icon(Icons.star, color: Colors.yellow, size: 15),
+                AnimatedRotation(
+                  turns: turn,
+                  duration: Duration(seconds: 1),
+                  child: ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          turn += 1;
+                          recuperaPost();
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      ),
+                      label: Icon(Icons.refresh, color: Colors.amber)),
                 ),
-                Container(
-                  margin: EdgeInsets.only(right: 3),
-                  child: Icon(Icons.star, color: Colors.yellow, size: 15),
-                ),
-                Container(
-                  margin: EdgeInsets.only(right: 3),
-                  child: Icon(Icons.star, color: Colors.yellow, size: 15),
-                ),
-                Container(
-                  margin: EdgeInsets.only(right: 3),
-                  child: Icon(Icons.star, color: Colors.grey, size: 15),
-                ),
-                Container(
-                  margin: EdgeInsets.only(right: 3),
-                  child: Icon(Icons.star, color: Colors.grey, size: 15),
+                Row(
+                  children: estrelaWidget,
                 ),
                 Text(
-                  '4.0',
+                  star.toString() + ('.0'),
                   style: TextStyle(
                     color: Colors.white70,
                   ),
