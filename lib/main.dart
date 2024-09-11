@@ -39,6 +39,33 @@ class _HomeState extends State<Home> {
     return postagens;
   }
 
+  put() async {
+    var url = Uri.parse("https://api.jsonbin.io/v3/b/66e07b64acd3cb34a8815cf5");
+    var getResponse = await http.get(url, headers: {
+      "Content-Type": "application/json",
+    });
+    if (getResponse.statusCode == 200) {
+      Map<String, dynamic> dadosExistente = json.decode(getResponse.body);
+      Map<String, dynamic> novoRestaurante = {
+        "id": 12,
+        "local": "Novo Restaurante",
+        "nome": "Descrição do novo restaurante...",
+        "img":
+            "https://cdn.pixabay.com/photo/2023/07/26/16/43/food-8151625_640.jpg",
+        "estrela": 5
+      };
+      dadosExistente["record"]["post"].add(novoRestaurante);
+      var body = json.encode(dadosExistente);
+      var putResponse = await http.put(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: body,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -177,7 +204,7 @@ class _HomeState extends State<Home> {
                 Text(
                   star.toString() + ('.0'),
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: Colors.white,
                   ),
                 ),
                 Text("(2300)",
@@ -194,6 +221,7 @@ class _HomeState extends State<Home> {
                     fontSize: 15,
                   )),
             ),
+            ElevatedButton(onPressed: put, child: Text("Gerar Post "))
           ],
         ),
       ),
